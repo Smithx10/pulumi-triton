@@ -17,6 +17,7 @@ package main
 import (
 	"github.com/pulumi/pulumi-terraform/pkg/tfgen"
 
+	"github.com/Smithx10/pulumi-triton"
 	"github.com/Smithx10/pulumi-triton/pkg/version"
 )
 

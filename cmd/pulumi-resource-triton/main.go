@@ -15,6 +15,7 @@
 package main
 
 import (
+	"github.com/Smithx10/pulumi-triton"
 	"github.com/pulumi/pulumi-terraform/pkg/tfbridge"
 
 	"github.com/Smithx10/pulumi-triton/pkg/version"

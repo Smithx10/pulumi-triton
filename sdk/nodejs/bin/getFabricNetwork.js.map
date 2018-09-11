@@ -1,0 +1,1 @@
+{"version":3,"file":"getFabricNetwork.js","sourceRoot":"","sources":["../getFabricNetwork.ts"],"names":[],"mappings":";AAAA,wFAAwF;AACxF,iFAAiF;;AAEjF,yCAAyC;AAEzC,0BAAiC,IAA0B,EAAE,IAA2B;IACpF,OAAO,MAAM,CAAC,OAAO,CAAC,MAAM,CAAC,gDAAgD,EAAE;QAC3E,MAAM,EAAE,IAAI,CAAC,IAAI;QACjB,QAAQ,EAAE,IAAI,CAAC,MAAM;KACxB,EAAE,IAAI,CAAC,CAAC;AACb,CAAC;AALD,4CAKC"}

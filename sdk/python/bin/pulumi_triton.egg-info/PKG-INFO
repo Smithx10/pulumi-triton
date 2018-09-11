@@ -1,0 +1,13 @@
+Metadata-Version: 1.0
+Name: pulumi-triton
+Version: 0.15.0+dirty
+Summary: A Pulumi package for creating triton resources
+Home-page: https://pulumi.io
+Author: UNKNOWN
+Author-email: UNKNOWN
+License: MIT
+Project-URL: Repository, https://github.com/Smithx10/pulumi-triton
+Description: 
+        
+Keywords: pulumi triton
+Platform: UNKNOWN

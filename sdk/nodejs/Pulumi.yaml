@@ -1,0 +1,3 @@
+name: triton
+description: A Pulumi resource provider for triton.
+language: nodejs

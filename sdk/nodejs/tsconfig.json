@@ -1,0 +1,32 @@
+{
+    "compilerOptions": {
+        "outDir": "bin",
+        "target": "es6",
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "declaration": true,
+        "sourceMap": true
+    },
+    "files": [
+        "config/index.ts",
+        "config/vars.ts",
+        "fabric.ts",
+        "firewallRule.ts",
+        "getAccount.ts",
+        "getDatacenter.ts",
+        "getFabricNetwork.ts",
+        "getFabricVlan.ts",
+        "getImage.ts",
+        "getNetwork.ts",
+        "getPackage.ts",
+        "index.ts",
+        "instanceTemplate.ts",
+        "key.ts",
+        "machine.ts",
+        "provider.ts",
+        "serviceGroup.ts",
+        "snapshot.ts",
+        "vlan.ts"
+    ]
+}
+
