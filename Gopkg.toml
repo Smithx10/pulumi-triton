@@ -7,5 +7,13 @@
   branch = "master"
 
 [[constraint]]
+  name = "github.com/hashicorp/terraform"
+  version = "v0.11.8"
+
+  [[override]]
+  name = "github.com/hashicorp/terraform"
+  version = "v0.11.8"
+
+  [[constraint]]
   name = "github.com/terraform-providers/terraform-provider-triton"
   branch = "master"

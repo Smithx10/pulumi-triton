@@ -1,0 +1,44 @@
+// Copyright 2016-2018, Pulumi Corporation.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+import "plugin.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/struct.proto";
+
+package pulumirpc;
+
+// Analyzer is a pluggable service that checks entire projects/stacks/snapshots, and/or individual resources,
+// for arbitrary issues.  These might be style, policy, correctness, security, or performance related.
+service Analyzer {
+    // Analyze analyzes a single resource object, and returns any errors that it finds.
+    rpc Analyze(AnalyzeRequest) returns (AnalyzeResponse) {}
+    // GetPluginInfo returns generic information about this plugin, like its version.
+    rpc GetPluginInfo(google.protobuf.Empty) returns (PluginInfo) {}
+}
+
+message AnalyzeRequest {
+    string type = 1;                       // the type token of the resource.
+    google.protobuf.Struct properties = 2; // the full properties to use for validation.
+}
+
+message AnalyzeResponse {
+    repeated AnalyzeFailure failures = 1; // the failures (or empty if none).
+}
+
+message AnalyzeFailure {
+    string property = 1; // the property that the analyzer rejected (or "" if general).
+    string reason = 2;   // the reason that the analyzer rejected the request.
+}

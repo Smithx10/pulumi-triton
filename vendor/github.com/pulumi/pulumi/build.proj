@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <RepoRootDirectory>$(MSBuildThisFileDirectory)</RepoRootDirectory>
+    <SdkDirectory>$(RepoRootDirectory)\sdk\</SdkDirectory>
+    <NodeJSSdkDirectory>$(SdkDirectory)\nodejs\</NodeJSSdkDirectory>
+    <TestParallelism>10</TestParallelism>
+    <MSVSVersion>2017</MSVSVersion>
+    <PulumiRoot Condition="'$(PulumiRoot)' == ''">C:\Pulumi\</PulumiRoot>
+    <PulumiBin>$(PulumiRoot)\bin</PulumiBin>
+  </PropertyGroup>
+
+  <Target Name="EnsureGoDependencies">
+    <Exec Command="dep ensure -v"
+          WorkingDirectory="$(RepoRootDirectory)" />
+  </Target>
+
+  <Target Name="EnsureNodeDependencies">
+    <Exec Command="yarn install"
+          WorkingDirectory="$(NodeJSSdkDirectory)" />
+  </Target>
+
+  <Target Name="TypeScriptCompileNodeSdk">
+    <Exec Command="&quot;$(MSBuildThisFileDirectory)\scripts\get-version.cmd&quot;" ConsoleToMSBuild="true" Condition="'$(Version)' == ''">
+      <Output TaskParameter="ConsoleOutput" PropertyName="Version" />
+    </Exec>
+    <Exec Command="yarn run tsc" WorkingDirectory="$(NodeJSSdkDirectory)" />
+    <Copy SourceFiles="$(NodeJSSdkDirectory)\package.json" DestinationFiles="$(NodeJSSdkDirectory)\bin\package.json" />
+    <Exec Command="node &quot;$(RepoRootDirectory)\scripts\reversion.js&quot; &quot;$(NodeJSSdkDirectory)\bin\package.json&quot; $(Version)" />
+    <Exec Command="node &quot;$(RepoRootDirectory)\scripts\reversion.js&quot; &quot;$(NodeJSSdkDirectory)\bin\version.js&quot; $(Version)" />
+  </Target>
+
+  <Target Name="GoCompileNodeSdk">
+    <ItemGroup>
+      <GoPackagesToBuild Include="github.com/pulumi/pulumi/sdk/nodejs/cmd/pulumi-language-nodejs" />
+    </ItemGroup>
+
+    <Exec Command="&quot;$(MSBuildThisFileDirectory)\scripts\get-version.cmd&quot;" ConsoleToMSBuild="true" Condition="'$(Version)' == ''">
+      <Output TaskParameter="ConsoleOutput" PropertyName="Version" />
+    </Exec>
+
+    <Exec Command="go install -ldflags &quot;-X github.com/pulumi/pulumi/pkg/version.Version=$(Version)&quot; %(GoPackagesToBuild.Identity)"
+          EnvironmentVariables="GOBIN=$(PulumiBin)"/>
+  </Target>
+
+  <Target Name="BinplaceNodeSdkProtos">
+    <ItemGroup>
+      <NodeSdkProtos Include="$(NodeJSSdkDirectory)\proto\*.js" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(NodeSdkProtos)"
+          DestinationFolder="$(NodeJSSdkDirectory)\bin\proto" />
+  </Target>
+
+  <Target Name="BinPlaceNodeSdkTestData">
+    <ItemGroup>
+      <NodeSdkTestDataFiles Include="$(NodeJSSdkDirectory)\tests\runtime\langhost\cases\**\*" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(NodeSdkTestDataFiles)"
+          DestinationFolder="$(NodeJSSdkDirectory)\bin\tests\runtime\langhost\cases" />
+  </Target>
+
+  <Target Name="YarnLinkSdk">
+    <Exec Command="yarn link"
+          WorkingDirectory="$(NodeJSSdkDirectory)\bin" />
+  </Target>
+
+  <Target Name="BinPlaceNodeSdk"
+          DependsOnTargets="BinPlaceNodeSdkProtos;BinPlaceNodeSdkTestData;YarnLinkSdk">
+     <Copy SourceFiles="$(NodeJSSdkDirectory)\dist\pulumi-resource-pulumi-nodejs.cmd" DestinationFolder="$(PulumiBin)" />
+  </Target>
+
+  <Target Name="BuildNodeSdk"
+          DependsOnTargets="TypeScriptCompileNodeSdk;GoCompileNodeSdk;BinPlaceNodeSdk">
+  </Target>
+
+  <Target Name="BuildGoCmds">
+    <ItemGroup>
+      <GoCmdsToBuild Include="github.com/pulumi/pulumi" />
+    </ItemGroup>
+
+    <Exec Command="&quot;$(MSBuildThisFileDirectory)\scripts\get-version.cmd&quot;" ConsoleToMSBuild="true" Condition="'$(Version)' == ''">
+      <Output TaskParameter="ConsoleOutput" PropertyName="Version" />
+    </Exec>
+
+    <Exec Command="go install -ldflags &quot;-X github.com/pulumi/pulumi/pkg/version.Version=$(Version)&quot; %(GoCmdsToBuild.Identity)"
+          EnvironmentVariables="GOBIN=$(PulumiBin)"/>
+  </Target>
+
+  <Target Name="Build"
+          DependsOnTargets="EnsureGoDependencies;EnsureNodeDependencies;BuildNodeSdk;BuildGoCmds">
+  </Target>
+
+  <Target Name="IntegrationTest">
+    <Exec Command="where pulumi-language-nodejs"
+          IgnoreExitCode="true">
+      <Output TaskParameter="ExitCode" PropertyName="WhereLangHostExitCode" />
+    </Exec>
+
+    <Exec Command="where pulumi-resource-pulumi-nodejs.cmd"
+          IgnoreExitCode="true">
+      <Output TaskParameter="ExitCode" PropertyName="WhereDynamicProviderExitCode" />
+    </Exec>
+
+    <Error Text="Please add &quot;$(PulumiRoot)\bin&quot; to your path before running integration tests."
+           Condition="$(WhereLangHostExitCode) != 0 Or $(WhereDynamicProviderExitCode) != 0"/>
+
+    <!-- Ignore the exit code (but retain it) so we can kill all the lingering node processes even when go test
+         fails. Otherwise, the AppVeyor job would hang until it reached the timeout -->
+    <Exec Command="go test -timeout 10m -cover -parallel $(TestParallelism) .\examples"
+          IgnoreExitCode="true"
+          WorkingDirectory="$(RepoRootDirectory)">
+      <Output TaskParameter="ExitCode" PropertyName="GoTestExitCode" />
+    </Exec>
+
+    <!-- Work around pulumi/pulumi#371 by killing all lingering node.exe processes. Yes, in the limit
+         this may kill too much, but we assume for now folks hacking on pulumi on windows are not running
+         additional node.exe processes -->
+    <Exec Command="taskkill /f /im node.exe"
+          IgnoreStandardErrorWarningFormat="true"
+          IgnoreExitCode="true" />
+
+    <Error Text="go test failed, exit code: $(GoTestExitCode)"
+           Condition="'$(GoTestExitCode)' != '0'"/>
+  </Target>
+
+  <Target Name="Publish">
+    <Exec Command="&quot;$(RepoRootDirectory)\scripts\publish.cmd" />
+  </Target>
+
+  <Target Name="AppVeyorPush"
+          DependsOnTargets="Build;Publish;IntegrationTest" />
+
+  <Target Name="AppVeyorPullRequest"
+          DependsOnTargets="Build;IntegrationTest" />
+
+</Project>
